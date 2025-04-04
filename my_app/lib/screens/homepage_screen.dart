@@ -1,0 +1,332 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:login_signup/screens/ChatbotScreen.dart';
+import 'package:login_signup/screens/dashpage.dart';
+import 'package:login_signup/screens/language.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+class HomepageScreen extends StatefulWidget {
+  const HomepageScreen({super.key});
+
+  @override
+  State<HomepageScreen> createState() => _HomepageScreenState();
+}
+
+class _HomepageScreenState extends State<HomepageScreen> {
+  final user = FirebaseAuth.instance.currentUser;
+
+  Future<Map<String, dynamic>> _getUserInfo() async {
+    if (user != null) {
+      DocumentSnapshot<Map<String, dynamic>> userDoc = await FirebaseFirestore
+          .instance
+          .collection('users')
+          .doc(user!.uid)
+          .get();
+      final totalQuizzesCompleted =
+          userDoc.data()?['totalQuizzesCompleted'] ?? 0;
+      return {
+        'username': userDoc.data()?['username'],
+        'email': user!.email,
+        'totalQuizzesCompleted': totalQuizzesCompleted,
+      };
+    }
+    return {'username': null, 'email': null, 'totalQuizzesCompleted': 0};
+  }
+
+  void _showUserInfo() async {
+    Map<String, dynamic> userInfo = await _getUserInfo();
+    final totalQuizzesCompleted = userInfo['totalQuizzesCompleted'] as int;
+
+    String level;
+    Color progressColor;
+    if (totalQuizzesCompleted < 20) {
+      level = 'Beginner';
+      progressColor = Colors.red;
+    } else if (totalQuizzesCompleted < 50) {
+      level = 'Intermediate';
+      progressColor = Colors.orange;
+    } else {
+      level = 'Pro';
+      progressColor = Colors.green;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color.fromARGB(255, 245, 245, 245),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            "User Information",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                backgroundColor: const Color.fromARGB(255, 199, 167, 205),
+                radius: 40,
+                child: Text(
+                  userInfo['username']?[0].toUpperCase() ?? '?',
+                  style: const TextStyle(
+                    fontSize: 30,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Username: ${userInfo['username'] ?? "No username available"}',
+                style: const TextStyle(fontSize: 18, color: Colors.black87),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Email: ${userInfo['email'] ?? "No email available"}',
+                style: const TextStyle(fontSize: 16, color: Colors.black54),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Quiz Completion Level: $level',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: progressColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 10),
+              LinearProgressIndicator(
+                value: totalQuizzesCompleted / 30,
+                backgroundColor: Colors.grey[300],
+                valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                '$totalQuizzesCompleted quizzes completed',
+                style: const TextStyle(fontSize: 16, color: Colors.black54),
+              ),
+              const SizedBox(height: 20),
+
+              // Participation Certificate
+              if (totalQuizzesCompleted >= 0)
+                _buildCertificateLink(
+                  'Participation Certificate',
+                  'https://docs.google.com/forms/d/e/1FAIpQLSdB_nfiXXQPDBbwHvv2Bv2U98JbhLYLB1-dGnfu5iJ1IrTjAQ/viewform',
+                ),
+
+              // Intermediate Certificate
+              if (totalQuizzesCompleted >= 45)
+                _buildCertificateLink(
+                  'Intermediate Certificate',
+                  'https://docs.google.com/forms/d/e/1FAIpQLSehMcMy_fbbELmPCb6l-OmKwyjlBCIld6Cbnq74oxHy8Kavmg/viewform',
+                ),
+
+              // Pro Certificate
+              if (totalQuizzesCompleted >= 68)
+                _buildCertificateLink(
+                  'Pro Certificate',
+                  'https://yourprolink.com',
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                "OK",
+                style: TextStyle(color: Colors.blueAccent),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+// Helper function for generating certificate links
+  Widget _buildCertificateLink(String title, String url) {
+    return GestureDetector(
+      onTap: () => launch(url),
+      child: Row(
+        children: [
+          Icon(Icons.file_download, color: Colors.blueAccent),
+          const SizedBox(width: 10),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.blueAccent,
+              decoration: TextDecoration.underline,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCustomerSupport() {
+    final String email = "sivasaran8667@gmail.com";
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Customer Support'),
+          content: RichText(
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: 'For any queries, contact us at: ',
+                  style: TextStyle(fontSize: 16, color: Colors.black),
+                ),
+                TextSpan(
+                  text: email,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.blueAccent,
+                    fontWeight: FontWeight.bold,
+                    decoration: TextDecoration.underline,
+                  ),
+                  recognizer: TapGestureRecognizer()
+                    ..onTap = () {
+                      launch('mailto:$email');
+                    },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => LanguageSelectionScreen(),
+              ),
+            );
+          },
+        ),
+        title: const Text('Home'),
+        backgroundColor: const Color.fromARGB(255, 163, 115, 118),
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.chat),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ChatScreen()),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: _showUserInfo,
+          ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/images/hbg.jpg'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                RichText(
+                  textAlign: TextAlign.center,
+                  text: const TextSpan(
+                    children: [
+                      TextSpan(
+                        text: 'ROI  \n',
+                        style: TextStyle(
+                          fontSize: 50.0,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      TextSpan(
+                        text:
+                            'Let\'s learn the constitution in a simple manner',
+                        style: TextStyle(
+                          fontSize: 24,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 30),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (e) => const Dashpage(),
+                      ),
+                    );
+                  },
+                  child: const Text("Get Started"),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 20, horizontal: 40),
+                    backgroundColor: const Color.fromARGB(255, 199, 167, 205),
+                    textStyle: const TextStyle(
+                        fontSize: 24, fontWeight: FontWeight.bold),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Customer care support icon at the bottom right
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: FloatingActionButton(
+              onPressed: _showCustomerSupport,
+              child: Icon(Icons.support_agent),
+              backgroundColor: const Color.fromARGB(255, 199, 167, 205),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
