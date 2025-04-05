@@ -289,7 +289,7 @@ class _QuizWidgetState extends State<QuizWidget> {
                   ),
                   Expanded(
                     child: Text(
-                      '                ऑडियो  : ',
+                      '             ऑडियो  : ',
                       style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,

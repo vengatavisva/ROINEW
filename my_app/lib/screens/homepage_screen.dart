@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:login_signup/screens/ChatbotScreen.dart';
 import 'package:login_signup/screens/dashpage.dart';
 import 'package:login_signup/screens/language.dart';
+import 'package:login_signup/screens/helpline_info_screen.dart';
+import 'package:login_signup/screens/FinesAndDutiesScreen.dart'; // Add this
 import 'package:url_launcher/url_launcher.dart';
 
 class HomepageScreen extends StatefulWidget {
@@ -14,8 +16,43 @@ class HomepageScreen extends StatefulWidget {
   State<HomepageScreen> createState() => _HomepageScreenState();
 }
 
-class _HomepageScreenState extends State<HomepageScreen> {
+class _HomepageScreenState extends State<HomepageScreen>
+    with SingleTickerProviderStateMixin {
   final user = FirebaseAuth.instance.currentUser;
+
+  late AnimationController _animationController;
+  late Animation<Offset> _slideAnimation;
+  bool _showHelpline = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(1.0, 0.0), end: Offset.zero)
+            .animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutBack,
+    ));
+
+    Future.delayed(const Duration(milliseconds: 600), () {
+      setState(() {
+        _showHelpline = true;
+      });
+      _animationController.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   Future<Map<String, dynamic>> _getUserInfo() async {
     if (user != null) {
@@ -112,22 +149,16 @@ class _HomepageScreenState extends State<HomepageScreen> {
                 style: const TextStyle(fontSize: 16, color: Colors.black54),
               ),
               const SizedBox(height: 20),
-
-              // Participation Certificate
               if (totalQuizzesCompleted >= 0)
                 _buildCertificateLink(
                   'Participation Certificate',
                   'https://docs.google.com/forms/d/e/1FAIpQLSdB_nfiXXQPDBbwHvv2Bv2U98JbhLYLB1-dGnfu5iJ1IrTjAQ/viewform',
                 ),
-
-              // Intermediate Certificate
               if (totalQuizzesCompleted >= 45)
                 _buildCertificateLink(
                   'Intermediate Certificate',
                   'https://docs.google.com/forms/d/e/1FAIpQLSehMcMy_fbbELmPCb6l-OmKwyjlBCIld6Cbnq74oxHy8Kavmg/viewform',
                 ),
-
-              // Pro Certificate
               if (totalQuizzesCompleted >= 68)
                 _buildCertificateLink(
                   'Pro Certificate',
@@ -137,13 +168,9 @@ class _HomepageScreenState extends State<HomepageScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text(
-                "OK",
-                style: TextStyle(color: Colors.blueAccent),
-              ),
+              onPressed: () => Navigator.of(context).pop(),
+              child:
+                  const Text("OK", style: TextStyle(color: Colors.blueAccent)),
             ),
           ],
         );
@@ -151,7 +178,6 @@ class _HomepageScreenState extends State<HomepageScreen> {
     );
   }
 
-// Helper function for generating certificate links
   Widget _buildCertificateLink(String title, String url) {
     return GestureDetector(
       onTap: () => launch(url),
@@ -205,9 +231,7 @@ class _HomepageScreenState extends State<HomepageScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+              onPressed: () => Navigator.of(context).pop(),
               child: Text('Close'),
             ),
           ],
@@ -315,7 +339,39 @@ class _HomepageScreenState extends State<HomepageScreen> {
               ],
             ),
           ),
-          // Customer care support icon at the bottom right
+          if (_showHelpline)
+            Positioned(
+              top: kToolbarHeight - 20,
+              right: 16,
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: Row(
+                  children: [
+                    _BlinkingFinesButton(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => FinesAndDutiesScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 12),
+                    _BlinkingHelplineButton(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => HelplineInfoScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
           Positioned(
             bottom: 16,
             right: 16,
@@ -326,6 +382,137 @@ class _HomepageScreenState extends State<HomepageScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _BlinkingHelplineButton extends StatefulWidget {
+  final VoidCallback onTap;
+
+  const _BlinkingHelplineButton({required this.onTap});
+
+  @override
+  State<_BlinkingHelplineButton> createState() =>
+      _BlinkingHelplineButtonState();
+}
+
+class _BlinkingHelplineButtonState extends State<_BlinkingHelplineButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _blinkController;
+  late Animation<double> _opacityAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _blinkController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat(reverse: true);
+
+    _opacityAnimation = Tween<double>(begin: 1.0, end: 0.3).animate(
+      CurvedAnimation(parent: _blinkController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _blinkController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _opacityAnimation,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Column(
+          children: const [
+            Icon(Icons.help_outline, size: 30, color: Colors.white),
+            SizedBox(height: 4),
+            Text(
+              "Helpline",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                shadows: [
+                  Shadow(
+                    blurRadius: 3,
+                    color: Colors.black,
+                    offset: Offset(1, 1),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BlinkingFinesButton extends StatefulWidget {
+  final VoidCallback onTap;
+
+  const _BlinkingFinesButton({required this.onTap});
+
+  @override
+  State<_BlinkingFinesButton> createState() => _BlinkingFinesButtonState();
+}
+
+class _BlinkingFinesButtonState extends State<_BlinkingFinesButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _blinkController;
+  late Animation<double> _opacityAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _blinkController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat(reverse: true);
+
+    _opacityAnimation = Tween<double>(begin: 1.0, end: 0.3).animate(
+      CurvedAnimation(parent: _blinkController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _blinkController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _opacityAnimation,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Column(
+          children: const [
+            Icon(Icons.warning_amber, size: 30, color: Colors.white),
+            SizedBox(height: 4),
+            Text(
+              "Fines",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                shadows: [
+                  Shadow(
+                    blurRadius: 3,
+                    color: Colors.black,
+                    offset: Offset(1, 1),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

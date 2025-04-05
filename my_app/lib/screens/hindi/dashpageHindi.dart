@@ -202,7 +202,7 @@ class _DashpageState extends State<Dashpagehindi>
                           },
                         ),
                         const SizedBox(height: 40),
-                        // New Match Game Button
+                        /*// New Match Game Button
                         _buildStageButton(
                           context,
                           title: "परिदृश्य खेल",
@@ -216,7 +216,7 @@ class _DashpageState extends State<Dashpagehindi>
                               ),
                             );
                           },
-                        ),
+                        ),*/
                       ],
                     ),
                   ),
